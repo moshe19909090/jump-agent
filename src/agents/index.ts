@@ -2,6 +2,7 @@ import { ChatOpenAI } from "@langchain/openai";
 import { initializeAgentExecutorWithOptions } from "langchain/agents";
 import { SendGmailTool } from "./tools/sendGmailTool";
 import { ScheduleMeetingTool } from "./tools/scheduleMeetingTool";
+import { CreateHubspotNoteTool } from "./tools/createHubspotNoteTool";
 
 export async function getAgentExecutor() {
   const model = new ChatOpenAI({
@@ -9,7 +10,11 @@ export async function getAgentExecutor() {
     temperature: 0.3,
   });
 
-  const tools = [new SendGmailTool(), new ScheduleMeetingTool()];
+  const tools = [
+    new SendGmailTool(),
+    new ScheduleMeetingTool(),
+    new CreateHubspotNoteTool(),
+  ];
 
   const executor = await initializeAgentExecutorWithOptions(tools, model, {
     agentType: "openai-functions",
