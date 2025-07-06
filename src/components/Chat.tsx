@@ -7,39 +7,32 @@ type Message = {
   content: string;
 };
 
-const initialMessages: Message[] = [
-  {
-    role: "assistant",
-    content:
-      "I can answer questions about any Jump meeting. What do you want to know?",
-  },
-  {
-    role: "user",
-    content: "Find meetings I’ve had with Bill and Tim this month",
-  },
-  {
-    role: "assistant",
-    content:
-      "Sure, here are some recent meetings that you, Bill, and Tim all attended. I found 2 in May.\n\n🗓️ Thursday 12–1:30pm – Quarterly All Team Meeting\n🗓️ Friday 1–2pm – Strategy review",
-  },
-];
-
 export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>(initialMessages);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!input.trim()) return;
 
-    setMessages((prev) => [...prev, { role: "user", content: input }]);
+    const newMessages: Message[] = [
+      ...messages,
+      { role: "user", content: input },
+    ];
+    setMessages(newMessages);
     setInput("");
-    // placeholder assistant response
-    setTimeout(() => {
-      setMessages((prev) => [
-        ...prev,
-        { role: "assistant", content: "Got it! I'll check that for you." },
-      ]);
-    }, 800);
+
+    const res = await fetch("/api/chat", {
+      method: "POST",
+      body: JSON.stringify({ messages: newMessages }),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const data = await res.json();
+
+    setMessages((prev) => [
+      ...prev,
+      { role: "assistant", content: data.reply },
+    ]);
   };
 
   return (
@@ -56,7 +49,7 @@ export default function Chat() {
 
       {/* Timestamp */}
       <div className="text-center text-xs text-gray-400 py-1 border-b">
-        Context set to all meetings – 11:17am May 13, 2025
+        Context set to your emails
       </div>
 
       {/* Messages */}
@@ -79,12 +72,12 @@ export default function Chat() {
       <div className="border-t p-4 flex items-center gap-2 bg-gray-50">
         <button className="text-xl">➕</button>
         <select className="text-sm border px-2 py-1 rounded">
-          <option>All meetings</option>
+          <option>All emails</option>
         </select>
         <input
           type="text"
           className="flex-1 border px-3 py-2 rounded text-sm"
-          placeholder="Ask anything about your meetings…"
+          placeholder="Ask anything about your emails…"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && handleSend()}

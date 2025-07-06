@@ -1,4 +1,9 @@
 import { OpenAI } from "openai";
+import { OpenAIEmbeddings } from "@langchain/openai";
+
+export const openaiEmbeddings = new OpenAIEmbeddings({
+  modelName: "text-embedding-3-small",
+});
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
