@@ -18,10 +18,11 @@ async function main() {
     try {
       const content = `${email.subject}\n\n${email.body}`;
       const vector = await getEmbedding(content);
+      const formattedVector = `[${vector.join(",")}]`;
 
       await pg.query(
-        `INSERT INTO "EmailEmbedding" ("emailid", "vector") VALUES ($1, $2)`,
-        [email.id, vector]
+        `INSERT INTO "EmailEmbedding" ("emailid", "vector") VALUES ($1, $2::vector)`,
+        [email.id, formattedVector]
       );
 
       console.log(`✅ Embedded: ${email.subject}`);
