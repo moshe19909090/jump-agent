@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ChatOpenAI } from "@langchain/openai";
 import { Pool } from "pg";
 import { z } from "zod";
-import { getEmbedding } from "@/lib/embedding"; // make sure this is correct path
+import { getEmbedding } from "@/lib/embedding";
+import { getAgentExecutor } from "@/agents";
 
 const schema = z.object({
   messages: z.array(z.object({ role: z.string(), content: z.string() })),
@@ -17,13 +17,12 @@ export async function POST(req: NextRequest) {
 
   const question = parsed.data.messages.at(-1)?.content || "No question";
 
-  // Embed the user question
+  // Step 1: Embed the question and fetch similar docs via pgvector
   const embedding = await getEmbedding(question);
   const formattedVector = `[${embedding.join(",")}]`;
 
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-  // Manually query pgvector for top matches
   const rawResults = await pool.query(
     `
     SELECT e.subject, e.snippet, e.body, ee.vector <#> $1::vector AS distance
@@ -40,35 +39,26 @@ export async function POST(req: NextRequest) {
   });
 
   console.log("📄 Retrieved docs:", docs.slice(0, 2));
+  await pool.end();
 
-  const model = new ChatOpenAI({
-    modelName: "gpt-4o",
-    temperature: 0.3,
-  });
+  // Step 2: Use Langchain agent for tool calling + reasoning
+  const context = docs.join("\n---\n");
+  const executor = await getAgentExecutor();
 
   let resultText = "";
 
-  if (docs.length) {
-    const context = docs.join("\n---\n");
+  try {
+    const response = await executor.call({
+      input: question,
+      context, // you can access this in tools if needed
+    });
 
-    const completion = await model.call([
-      {
-        role: "system",
-        content: `You are a helpful assistant for financial advisors. Use the following emails as context:\n\n${context}`,
-      },
-      {
-        role: "user",
-        content: question,
-      },
-    ]);
-
-    resultText = completion.text;
-  } else {
+    resultText = response.output;
+  } catch (e) {
+    console.error("🛑 Agent error:", e);
     resultText =
-      "Sorry, I couldn’t find any relevant information in your email data.";
+      "Sorry, something went wrong while trying to complete your request.";
   }
-
-  await pool.end();
 
   return NextResponse.json({ reply: resultText });
 }
