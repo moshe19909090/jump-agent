@@ -132,10 +132,12 @@ The groundwork is in place to easily expand the chat system into a fully-feature
 
 - **Next.js 14 / App Router**
 - **TypeScript / Tailwind CSS**
-- **LangChain** (agent executor, tools)
-- **PostgreSQL + pgvector**
-- **Google + HubSpot APIs**
-- **Render.com** for deployment and cron jobs
+- **LangChain** – agent executor + tools
+- **OpenAI** – `text-embedding-3-small` (via paid account)
+- **PostgreSQL + pgvector** – for embeddings and memory
+- **Supabase** – used as Postgres DB host
+- **Google & HubSpot APIs** – email, calendar, CRM integrations
+- **Render.com** – used for deployment + cron jobs (via paid account)
 
 ---
 
