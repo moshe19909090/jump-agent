@@ -1,6 +1,6 @@
 import { StructuredTool } from "langchain/tools";
 import { z } from "zod";
-import { google } from "googleapis";
+import { sendGmail } from "@/lib/sendGmail"; // adjust path to where you put it
 
 export class SendGmailTool extends StructuredTool {
   name = "send_gmail";
@@ -16,32 +16,7 @@ export class SendGmailTool extends StructuredTool {
   async _call(input: z.infer<this["schema"]>): Promise<string> {
     const { accessToken, to, subject, body } = input;
 
-    console.log("📤 Sending Gmail with:");
-    console.log({ accessToken, to, subject, body });
-
-    const oauth2Client = new google.auth.OAuth2();
-    oauth2Client.setCredentials({ access_token: accessToken });
-
-    const gmail = google.gmail({ version: "v1", auth: oauth2Client });
-
-    const message = [
-      `To: ${to}`,
-      `Subject: ${subject}`,
-      "Content-Type: text/plain; charset=utf-8",
-      "",
-      body,
-    ].join("\n");
-
-    const encodedMessage = Buffer.from(message)
-      .toString("base64")
-      .replace(/\+/g, "-")
-      .replace(/\//g, "_")
-      .replace(/=+$/, "");
-
-    await gmail.users.messages.send({
-      userId: "me",
-      requestBody: { raw: encodedMessage },
-    });
+    await sendGmail({ accessToken, to, subject, body });
 
     return `Email sent to ${to} with subject "${subject}"`;
   }

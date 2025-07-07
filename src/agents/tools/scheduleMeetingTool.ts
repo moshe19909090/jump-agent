@@ -4,7 +4,8 @@ import { google } from "googleapis";
 
 export class ScheduleMeetingTool extends StructuredTool {
   name = "schedule_meeting";
-  description = "Schedules a meeting in the user's Google Calendar";
+  description =
+    "Schedules a confirmed meeting in Google Calendar. Use only after time has been agreed upon.";
 
   schema = z.object({
     accessToken: z.string(),

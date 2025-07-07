@@ -1,24 +1,82 @@
-// src/app/api/auth/callback/route.ts
+import { NextRequest, NextResponse } from "next/server";
+import { saveGoogleTokensToDB } from "../../../../../utils/saveGoogleTokensToDB";
 
-import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { fetchAndStoreGmailMessages } from "@/lib/gmail";
-import { authOptions } from "@/lib/authOptions";
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const code = searchParams.get("code");
 
-export async function GET() {
-  const session = await getServerSession(authOptions);
-
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: "No access token" }, { status: 401 });
+  if (!code) {
+    return NextResponse.json(
+      { error: "Missing authorization code" },
+      { status: 400 }
+    );
   }
 
   try {
-    const emails = await fetchAndStoreGmailMessages(session.accessToken);
-    return NextResponse.json({ saved: emails.length });
-  } catch (error) {
-    console.error("Error during callback ingestion:", error);
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        code,
+        client_id: process.env.GOOGLE_CLIENT_ID!,
+        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
+        redirect_uri: process.env.GOOGLE_REDIRECT_URI!,
+        grant_type: "authorization_code",
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      const errorBody = await tokenRes.text();
+      throw new Error(`Token exchange failed: ${errorBody}`);
+    }
+
+    const tokens = await tokenRes.json();
+    const { access_token, refresh_token, expires_in, scope, id_token } = tokens;
+
+    // Decode ID token to get user's email
+    let userInfo;
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      userInfo = JSON.parse(
+        Buffer.from(id_token.split(".")[1], "base64").toString("utf-8")
+      );
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (err) {
+      return NextResponse.json(
+        { error: "Invalid ID token (could not decode)" },
+        { status: 400 }
+      );
+    }
+
+    const userId = "1"; // temporary hardcoded userId to match cron token lookup
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Email not found in ID token" },
+        { status: 400 }
+      );
+    }
+    await saveGoogleTokensToDB({
+      userId: "1",
+      access_token,
+      refresh_token,
+      expires_in,
+      scope,
+    });
+
+    console.log("✅ Token saved:", {
+      access_token,
+      refresh_token,
+      expires_in,
+    });
+
+    console.log("✅ Google tokens saved for:", userId);
+    console.log("🔍 Scopes granted:", scope);
+
+    return NextResponse.redirect(`${process.env.NEXTAUTH_URL}/chat`);
+  } catch (err) {
+    console.error("❌ Error handling Google callback:", err);
     return NextResponse.json(
-      { error: "Failed to ingest Gmail" },
+      { error: "Failed to exchange Google token" },
       { status: 500 }
     );
   }

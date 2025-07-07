@@ -1,3 +1,5 @@
+"use client";
+
 import { useHubspotStatus } from "@/hooks/useHubspotStatus";
 
 export default function HubspotConnectButton() {
@@ -6,13 +8,17 @@ export default function HubspotConnectButton() {
   if (isLoading) return null;
 
   if (isConnected) {
-    return <p className="text-green-600">✅ HubSpot connected</p>;
+    return (
+      <span className="text-sm text-green-600 font-medium">
+        ✅ HubSpot connected
+      </span>
+    );
   }
 
   return (
     <button
       onClick={() => (window.location.href = "/api/oauth/hubspot/start")}
-      className="btn btn-primary"
+      className="px-4 py-1.5 bg-orange-500 hover:bg-orange-600 text-white text-sm rounded"
     >
       Connect HubSpot
     </button>

@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 import { z } from "zod";
+import { getValidGoogleAccessToken } from "../../../../utils/getValidGoogleAccessToken";
 
 import { getEmbedding } from "@/lib/embedding";
 import { getAgentExecutor } from "@/agents";
 
 const schema = z.object({
   messages: z.array(z.object({ role: z.string(), content: z.string() })),
-  accessToken: z.string().optional(), // Optional token for Gmail tool
 });
 
 export async function POST(req: NextRequest) {
@@ -18,7 +18,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
   }
 
-  const { messages, accessToken } = parsed.data;
+  const { messages } = parsed.data;
+  const accessToken = await getValidGoogleAccessToken();
+
   const question = messages.at(-1)?.content || "No question";
   const chatHistory = messages
     .map((m) => `${m.role === "user" ? "User" : "Assistant"}: ${m.content}`)
@@ -82,7 +84,7 @@ export async function POST(req: NextRequest) {
   // Step 2: Run LangChain agent with tools
   const executor = await getAgentExecutor();
   const now = new Date().toISOString();
-  const systemPrompt = `
+const systemPrompt = `
 You are an AI assistant for financial advisors. You can use tools like Gmail and HubSpot to help your user.
 The current date and time is: ${now}
 When calling the Gmail tool, always include:
@@ -101,7 +103,12 @@ You also have tools for HubSpot:
 
 Use them together if needed. If a user mentions a person (e.g. Brian), first search for the contact before creating the note.
 
+You also have a tool called "get_calendar_events" to retrieve upcoming meetings and their attendees.
+
 You also have a tool called "save_instruction" to persist automation rules for future use.
+
+You also have a tool called "propose_meeting_times" which sends available time slots to someone based on the user's calendar availability.
+Use it to suggest meeting times when the user wants to propose a few options.
 
 Examples:
 User: Can you send an email to john@example.com?
@@ -120,8 +127,8 @@ You have a tool called "schedule_meeting" which schedules meetings on the user's
 
 When using this tool, provide the following fields:
 - "accessToken": the user's Google OAuth access token (use ${
-    accessToken || "N/A"
-  })
+  accessToken || "N/A"
+})
 - "attendees": array of email addresses
 - "summary": title of the meeting
 - "description": optional longer description
@@ -149,19 +156,26 @@ Available Tools:
   - Required: accessToken, attendees (array), summary, start, end
   - Optional: description
 
-3. create_hubspot_note
+3. propose_meeting_times
+  - Required: accessToken, to
+  - Optional: subject, body
+  - Use to send available calendar slots to a recipient via email
+
+4. create_hubspot_note
   - Required: contactId, content
 
-4. create_hubspot_contact
+5. create_hubspot_contact
   - Required: email, firstName, lastName
 
-5. search_hubspot_contact
+6. search_hubspot_contact
   - Required: query (name or email)
 
-6. save_instruction
+7. save_instruction
   - Required: instruction (ongoing automation rule)
 
-
+8. get_calendar_events
+  - No input required (other than accessToken via auth setup)
+  - Use to retrieve upcoming meetings and their participants
 
 Here is the full chat history:
 ${chatHistory}
@@ -172,6 +186,7 @@ ${context}
 User: ${question}
 `.trim();
 
+
   const response = await executor.call({
     input: systemPrompt,
     config: {
@@ -181,5 +196,12 @@ User: ${question}
     },
   });
 
-  return NextResponse.json({ reply: response.output });
+  return NextResponse.json({
+    reply: response.output,
+    contextSummary: {
+      emails: rawResults.rowCount,
+      notes: notesResult.rowCount,
+      instructions: instructionsResult.rowCount,
+    },
+  });
 }

@@ -6,6 +6,8 @@ import { CreateHubspotNoteTool } from "./tools/createHubspotNoteTool";
 import { CreateHubspotContactTool } from "./tools/createHubspotContactTool";
 import { SearchHubspotContactTool } from "./tools/searchHubspotContactTool";
 import { SaveInstructionTool } from "./tools/SaveInstructionTool";
+import { GetCalendarEventsTool } from "./tools/GetCalendarEventsTool";
+import { ProposeMeetingTimesTool } from "./tools/ProposeMeetingTimesTool";
 
 export async function getAgentExecutor() {
   const model = new ChatOpenAI({
@@ -20,6 +22,8 @@ export async function getAgentExecutor() {
     new CreateHubspotContactTool(),
     new SearchHubspotContactTool(),
     new SaveInstructionTool(),
+    new GetCalendarEventsTool(),
+    new ProposeMeetingTimesTool(),
   ];
 
   const executor = await initializeAgentExecutorWithOptions(tools, model, {
