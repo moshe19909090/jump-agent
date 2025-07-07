@@ -59,5 +59,5 @@ export async function GET(req: NextRequest) {
     expires_in,
   });
 
-  return NextResponse.redirect("http://localhost:3000/");
+  return NextResponse.redirect(`${process.env.BASE_URL}/`);
 }
