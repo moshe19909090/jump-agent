@@ -44,8 +44,7 @@ export async function fetchAndStoreGmailMessages(accessToken: string) {
     const recipients = headers
       .filter((h) => ["To", "Cc", "Bcc"].includes(h.name ?? ""))
       .map((h) => h.value || "")
-      .filter(Boolean)
-      .join(", "); // 👈 flatten to string for Prisma
+      .filter(Boolean);
 
     const from = headers.find((h) => h.name === "From")?.value || "";
     const dateHeader = headers.find((h) => h.name === "Date")?.value;

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleOAuthClient } from "@/lib/google";
+import { gmail_v1 } from "googleapis";
 
 function decodeBase64(body: string) {
   return Buffer.from(body, "base64").toString("utf-8");
@@ -10,15 +11,25 @@ export async function GET(req: NextRequest) {
   try {
     const gmail = await getGoogleOAuthClient(req);
 
-    const threadsRes = await gmail.users.threads.list({
-      userId: "me",
-      maxResults: 10,
-    });
+    const allThreads: gmail_v1.Schema$Thread[] = [];
+    let nextPageToken: string | undefined = undefined;
+
+    do {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const threadsRes: any = await gmail.users.threads.list({
+        userId: "me",
+        maxResults: 100,
+        pageToken: nextPageToken,
+      });
+
+      allThreads.push(...(threadsRes.data.threads || []));
+      nextPageToken = threadsRes.data.nextPageToken;
+    } while (nextPageToken);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const messages: any[] = [];
 
-    for (const thread of threadsRes.data.threads || []) {
+    for (const thread of allThreads) {
       const threadData = await gmail.users.threads.get({
         userId: "me",
         id: thread.id!,
