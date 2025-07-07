@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getGoogleOAuthClient } from "@/lib/google";
+import { pool } from "@/lib/db";
+import { getEmbedding } from "@/lib/embedding";
 
 export async function GET(req: NextRequest) {
   try {
@@ -13,7 +15,7 @@ export async function GET(req: NextRequest) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const listRes: any = await gmail.users.threads.list({
         userId: "me",
-        maxResults: 100,
+        maxResults: 50,
         pageToken: nextPageToken,
       });
 
@@ -35,24 +37,69 @@ export async function GET(req: NextRequest) {
               })
               .join("\n");
 
+            const headers = msg.payload?.headers || [];
+            const subject =
+              headers.find((h) => h.name === "Subject")?.value || "";
+            const snippet = msg.snippet || "";
+            const sender =
+              headers.find((h) => h.name === "From")?.value || "unknown";
+            const recipients = headers
+              .filter((h) => h.name === "To")
+              .map((h) => h.value)
+              .filter(Boolean);
+            const dateStr = headers.find((h) => h.name === "Date")?.value;
+            const receivedAt = dateStr ? new Date(dateStr) : new Date();
+
             return {
-              subject:
-                msg.payload?.headers?.find((h) => h.name === "Subject")
-                  ?.value || "",
-              from:
-                msg.payload?.headers?.find((h) => h.name === "From")?.value ||
-                "",
-              date:
-                msg.payload?.headers?.find((h) => h.name === "Date")?.value ||
-                "",
+              gmailid: msg.id,
+              subject,
+              snippet,
               body,
+              sender,
+              recipients,
+              receivedAt,
             };
           });
 
-          return {
-            id: t.id,
-            messages,
-          };
+          for (const msg of messages) {
+            try {
+              const result = await pool.query(
+                `INSERT INTO "Email" (gmailid, subject, snippet, body, sender, recipients, receivedat)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7)
+                 ON CONFLICT (gmailid) DO NOTHING
+                 RETURNING id`,
+                [
+                  msg.gmailid,
+                  msg.subject,
+                  msg.snippet,
+                  msg.body,
+                  msg.sender,
+                  msg.recipients,
+                  msg.receivedAt,
+                ]
+              );
+
+              const insertedId = result.rows[0]?.id;
+              if (insertedId) {
+                const vector = await getEmbedding(
+                  `${msg.subject}\n\n${msg.body}`
+                );
+                await pool.query(
+                  `INSERT INTO "EmailEmbedding" (emailid, vector)
+                   VALUES ($1, $2::vector)`,
+                  [insertedId, `[${vector.join(",")}]`]
+                );
+                console.log(`✅ Saved + Embedded: ${msg.subject}`);
+              }
+            } catch (err) {
+              console.error(
+                `❌ Failed to insert or embed email (${msg.gmailid})`,
+                err
+              );
+            }
+          }
+
+          return { id: t.id, messages };
         })
       );
 
@@ -60,7 +107,7 @@ export async function GET(req: NextRequest) {
       nextPageToken = listRes.data.nextPageToken || undefined;
     } while (nextPageToken);
 
-    return NextResponse.json(threads);
+    return NextResponse.json({ success: true, total: threads.length });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (e: any) {
     console.error("🔥 Error fetching Gmail threads:", e);
