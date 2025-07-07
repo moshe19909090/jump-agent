@@ -3,6 +3,7 @@ import GoogleProvider from "next-auth/providers/google";
 import { google } from "googleapis";
 import { NextAuthOptions } from "next-auth";
 import { JWT } from "next-auth/jwt";
+import { NextRequest } from "next/server";
 
 // 🔁 Helper to refresh the access token using Google's API
 async function refreshAccessToken(token: JWT): Promise<JWT> {
@@ -79,4 +80,9 @@ export const authOptions: NextAuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
-export { handler as GET, handler as POST };
+export const GET = handler as unknown as (
+  req: NextRequest
+) => Promise<Response>;
+export const POST = handler as unknown as (
+  req: NextRequest
+) => Promise<Response>;
