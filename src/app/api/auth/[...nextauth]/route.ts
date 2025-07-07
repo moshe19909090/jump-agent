@@ -11,7 +11,7 @@ export const authOptions: NextAuthOptions = {
       authorization: {
         params: {
           scope:
-            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.modify",
+            "openid email profile https://www.googleapis.com/auth/calendar https://www.googleapis.com/auth/gmail.modify https://www.googleapis.com/auth/gmail.send",
           access_type: "offline",
           prompt: "consent",
         },
@@ -27,6 +27,8 @@ export const authOptions: NextAuthOptions = {
       return token;
     },
     async session({ session, token }) {
+      console.log("🔐 ACCESS TOKEN:", token.accessToken);
+
       session.accessToken = token.accessToken;
       session.refreshToken = token.refreshToken;
       return session;

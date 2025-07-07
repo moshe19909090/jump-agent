@@ -2,6 +2,7 @@
 
 import { signIn, signOut, useSession } from "next-auth/react";
 import Chat from "@/components/Chat";
+import HubspotConnectButton from "@/components/HubspotConnectButton";
 
 export default function HomePage() {
   const { data: session } = useSession();
@@ -14,6 +15,8 @@ export default function HomePage() {
 
   return (
     <main className="p-8">
+      <HubspotConnectButton />
+
       <h1 className="text-2xl font-bold mb-4">Jump Agent</h1>
 
       {!session ? (

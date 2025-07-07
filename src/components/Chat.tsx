@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useSession } from "next-auth/react";
 
 type Message = {
   role: "user" | "assistant";
@@ -10,6 +11,7 @@ type Message = {
 export default function Chat() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const { data: session } = useSession();
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -20,11 +22,15 @@ export default function Chat() {
     ];
     setMessages(newMessages);
     setInput("");
-
+    console.log(session?.accessToken);
+    
     const res = await fetch("/api/chat", {
       method: "POST",
-      body: JSON.stringify({ messages: newMessages }),
       headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages: newMessages,
+        accessToken: session?.accessToken, // ✅ include access token from NextAuth
+      }),
     });
 
     const data = await res.json();

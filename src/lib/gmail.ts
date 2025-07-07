@@ -7,12 +7,21 @@ export async function fetchAndStoreGmailMessages(accessToken: string) {
 
   const gmail = google.gmail({ version: "v1", auth });
 
-  const res = await gmail.users.messages.list({
-    userId: "me",
-    maxResults: 10,
-  });
+  const messages = [];
+  let nextPageToken: string | undefined = undefined;
 
-  const messages = res.data.messages || [];
+  do {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const res: any = await gmail.users.messages.list({
+      userId: "me",
+      maxResults: 100,
+      pageToken: nextPageToken,
+    });
+
+    messages.push(...(res.data.messages || []));
+    nextPageToken = res.data.nextPageToken;
+  } while (nextPageToken);
+
   const savedEmails = [];
 
   for (const message of messages) {
@@ -35,17 +44,24 @@ export async function fetchAndStoreGmailMessages(accessToken: string) {
     const recipients = headers
       .filter((h) => ["To", "Cc", "Bcc"].includes(h.name ?? ""))
       .map((h) => h.value || "")
-      .filter(Boolean);
+      .filter(Boolean)
+      .join(", "); // 👈 flatten to string for Prisma
 
-    const email = await prisma.email.create({
-      data: {
+    const from = headers.find((h) => h.name === "From")?.value || "";
+    const dateHeader = headers.find((h) => h.name === "Date")?.value;
+    const receivedAt = dateHeader ? new Date(dateHeader) : new Date();
+
+    const email = await prisma.email.upsert({
+      where: { gmailid: message.id! },
+      update: {},
+      create: {
         gmailid: message.id!,
         subject,
         snippet,
         body: decodedBody,
-        sender: headers.find((h) => h.name === "From")?.value || "",
-        receivedat: new Date(),
+        sender: from,
         recipients,
+        receivedat: receivedAt,
       },
     });
 

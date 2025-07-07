@@ -7,13 +7,18 @@ export class SendGmailTool extends StructuredTool {
   description = "Send an email using Gmail";
 
   schema = z.object({
-    accessToken: z.string(),
-    to: z.string(),
-    subject: z.string(),
-    body: z.string(),
+    accessToken: z.string().describe("OAuth access token"),
+    to: z.string().describe("Recipient email address"),
+    subject: z.string().describe("Email subject"),
+    body: z.string().describe("Email body content"),
   });
 
-  async _call({ accessToken, to, subject, body }: z.infer<this["schema"]>) {
+  async _call(input: z.infer<this["schema"]>): Promise<string> {
+    const { accessToken, to, subject, body } = input;
+
+    console.log("📤 Sending Gmail with:");
+    console.log({ accessToken, to, subject, body });
+
     const oauth2Client = new google.auth.OAuth2();
     oauth2Client.setCredentials({ access_token: accessToken });
 
