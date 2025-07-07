@@ -4,8 +4,8 @@ import { pool } from "@/lib/db";
 export async function GET(
   req: NextRequest,
   context: { params: { threadId: string } }
-) {
-  const threadId = context.params.threadId;
+): Promise<NextResponse> {
+  const { threadId } = context.params;
 
   const result = await pool.query(
     `SELECT role, content, created_at
