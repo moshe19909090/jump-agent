@@ -1,10 +1,8 @@
 import { PrismaClient } from "@prisma/client";
 import { getEmbedding } from "@/lib/embedding";
-import { Pool } from "pg";
+import { pool as pg } from "@/lib/db";
 
 const prisma = new PrismaClient();
-const pg = new Pool({ connectionString: process.env.DATABASE_URL });
-
 async function main() {
   const emails = await prisma.email.findMany({
     where: {

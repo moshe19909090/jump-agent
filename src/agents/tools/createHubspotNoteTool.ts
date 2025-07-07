@@ -3,7 +3,7 @@
 import { StructuredTool } from "langchain/tools";
 import { z } from "zod";
 import axios from "axios";
-import { readHubspotToken } from "../../../utils/saveHubspotToken";
+import { getValidHubspotAccessToken } from "../../../utils/readHubspotToken";
 
 export class CreateHubspotNoteTool extends StructuredTool {
   name = "create_hubspot_note";
@@ -30,7 +30,7 @@ export class CreateHubspotNoteTool extends StructuredTool {
   });
 
   async _call(input: z.infer<this["schema"]>) {
-    const { access_token } = await readHubspotToken();
+    const access_token = await getValidHubspotAccessToken();
 
     const { contactId, note, ownerId, mentionOwnerIds, timestamp } = input;
 

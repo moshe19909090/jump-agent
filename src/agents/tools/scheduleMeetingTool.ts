@@ -15,32 +15,34 @@ export class ScheduleMeetingTool extends StructuredTool {
     end: z.string(), // ISO date string
   });
 
-  async _call({
-    accessToken,
-    attendees,
-    summary,
-    description,
-    start,
-    end,
-  }: z.infer<this["schema"]>) {
-    const auth = new google.auth.OAuth2();
-    auth.setCredentials({ access_token: accessToken });
+  async _call(input: z.infer<this["schema"]>) {
+    try {
+      const { accessToken, attendees, summary, description, start, end } =
+        input;
 
-    const calendar = google.calendar({ version: "v3", auth });
+      const auth = new google.auth.OAuth2();
+      auth.setCredentials({ access_token: accessToken });
 
-    await calendar.events.insert({
-      calendarId: "primary",
-      requestBody: {
-        summary,
-        description,
-        start: { dateTime: start },
-        end: { dateTime: end },
-        attendees: attendees.map((email) => ({ email })),
-      },
-    });
+      const calendar = google.calendar({ version: "v3", auth });
 
-    return `Meeting scheduled from ${start} to ${end} with: ${attendees.join(
-      ", "
-    )}`;
+      await calendar.events.insert({
+        calendarId: "primary",
+        requestBody: {
+          summary,
+          description,
+          start: { dateTime: start },
+          end: { dateTime: end },
+          attendees: attendees.map((email) => ({ email })),
+        },
+      });
+
+      return `✅ Meeting scheduled from ${start} to ${end} with: ${attendees.join(
+        ", "
+      )}`;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    } catch (err: any) {
+      console.error("❌ schedule_meeting failed:", err);
+      return `❌ Failed to schedule meeting: ${err.message}`;
+    }
   }
 }

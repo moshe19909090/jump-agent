@@ -1,12 +1,12 @@
 // app/api/hubspot/status/route.ts
 import { NextResponse } from "next/server";
-import { readHubspotToken } from "../../../../../utils/saveHubspotToken";
+import { getValidHubspotAccessToken } from "../../../../../utils/readHubspotToken";
 
 export async function GET() {
   try {
-    const token = await readHubspotToken();
+    const token = await getValidHubspotAccessToken();
 
-    if (token?.access_token) {
+    if (token) {
       return NextResponse.json({ connected: true });
     }
 

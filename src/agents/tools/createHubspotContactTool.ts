@@ -2,7 +2,7 @@
 import { StructuredTool } from "langchain/tools";
 import { z } from "zod";
 import axios from "axios";
-import { readHubspotToken } from "../../../utils/saveHubspotToken";
+import { getValidHubspotAccessToken } from "../../../utils/readHubspotToken";
 
 export class CreateHubspotContactTool extends StructuredTool {
   name = "create_hubspot_contact";
@@ -16,7 +16,7 @@ export class CreateHubspotContactTool extends StructuredTool {
   });
 
   async _call({ email, firstname, lastname }: z.infer<this["schema"]>) {
-    const { access_token } = await readHubspotToken();
+    const access_token = await getValidHubspotAccessToken();
     const res = await axios.post(
       `https://api.hubapi.com/crm/v3/objects/contacts`,
       {

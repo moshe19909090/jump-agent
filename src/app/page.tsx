@@ -7,12 +7,6 @@ import HubspotConnectButton from "@/components/HubspotConnectButton";
 export default function HomePage() {
   const { data: session } = useSession();
 
-  const fetchThreads = async () => {
-    const res = await fetch("/api/gmail/threads");
-    const data = await res.json();
-    console.log("📩 Gmail Threads:", data);
-  };
-
   return (
     <main className="p-8">
       <HubspotConnectButton />
@@ -36,8 +30,6 @@ export default function HomePage() {
             Sign out
           </button>
           <Chat />
-
-          <button onClick={fetchThreads}>Fetch Gmail Threads</button>
         </>
       )}
     </main>

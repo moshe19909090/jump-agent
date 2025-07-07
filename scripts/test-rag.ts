@@ -5,10 +5,9 @@ import path from "path";
 dotenv.config({ path: path.resolve(__dirname, "../.env") });
 
 import { getEmbedding } from "../src/lib/embedding"; // ✅ relative path
-import { Pool } from "pg";
+import { pool } from "@/lib/db";
 import { PrismaClient } from "@prisma/client";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const prisma = new PrismaClient();
 
 async function main() {
@@ -38,7 +37,7 @@ async function main() {
     console.log(`📬 Distance: ${row.distance}`);
   }
 
-  await pool.end();
+  // // await pool.end();
   await prisma.$disconnect();
 }
 

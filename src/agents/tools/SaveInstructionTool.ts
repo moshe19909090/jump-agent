@@ -1,10 +1,8 @@
 // File: src/agents/tools/saveInstructionTool.ts
 import { StructuredTool } from "langchain/tools";
 import { z } from "zod";
-import { Pool } from "pg";
+import { pool } from "@/lib/db";
 import { getEmbedding } from "@/lib/embedding";
-
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 export class SaveInstructionTool extends StructuredTool {
   name = "save_instruction";

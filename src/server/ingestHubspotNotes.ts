@@ -1,10 +1,8 @@
-import { Pool } from "pg";
+import { pool } from "@/lib/db";
 import { getEmbedding } from "@/lib/embedding";
 import axios from "axios";
 
 export async function ingestHubspotNotes(accessToken: string) {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-
   let hasMore = true;
   let after: string | undefined = undefined;
 
@@ -31,10 +29,15 @@ export async function ingestHubspotNotes(accessToken: string) {
       const embedding = await getEmbedding(content);
 
       await pool.query(
-        `INSERT INTO "NoteEmbedding" (noteId, content, vector)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (noteId) DO NOTHING`,
-        [note.id, content, `[${embedding.join(",")}]`]
+        `INSERT INTO "NoteEmbedding" (noteId, content, vector, created_at, source, type)
+   VALUES ($1, $2, $3, $4, 'hubspot', 'note')
+   ON CONFLICT (noteId) DO NOTHING`,
+        [
+          note.id,
+          content,
+          `[${embedding.join(",")}]`,
+          note.properties.hs_timestamp,
+        ]
       );
     }
 
@@ -42,5 +45,5 @@ export async function ingestHubspotNotes(accessToken: string) {
     after = res.data.paging?.next?.after;
   }
 
-  await pool.end();
+  // await pool.end();
 }

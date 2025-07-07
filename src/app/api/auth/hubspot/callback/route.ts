@@ -1,6 +1,5 @@
-// app/api/auth/hubspot/callback/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { saveHubspotToken } from "../../../../../../utils/saveHubspotToken";
+import { pool } from "@/lib/db";
 
 const HUBSPOT_CLIENT_ID = process.env.HUBSPOT_CLIENT_ID!;
 const HUBSPOT_CLIENT_SECRET = process.env.HUBSPOT_CLIENT_SECRET!;
@@ -17,7 +16,6 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  // Exchange the code for access token
   const response = await fetch("https://api.hubapi.com/oauth/v1/token", {
     method: "POST",
     headers: {
@@ -29,7 +27,7 @@ export async function GET(req: NextRequest) {
       client_secret: HUBSPOT_CLIENT_SECRET,
       redirect_uri: HUBSPOT_REDIRECT_URI,
       code,
-    }).toString(),
+    }),
   });
 
   if (!response.ok) {
@@ -41,10 +39,25 @@ export async function GET(req: NextRequest) {
     );
   }
 
-  const tokenData = await response.json();
-  await saveHubspotToken(tokenData);
-  console.log("✅ HubSpot token data:", tokenData);
+  const data = await response.json();
+  const { access_token, refresh_token, expires_in } = data;
 
-  // For now, just return it — later we can save it per-user
+  await pool.query(
+    `INSERT INTO "HubspotAuth" (id, access_token, refresh_token, expires_at)
+     VALUES (1, $1, $2, NOW() + INTERVAL '${expires_in} seconds')
+     ON CONFLICT (id) DO UPDATE
+     SET access_token = $1,
+         refresh_token = $2,
+         expires_at = NOW() + INTERVAL '${expires_in} seconds'`,
+    [access_token, refresh_token]
+  );
+  // await pool.end();
+
+  console.log("✅ HubSpot token saved to DB:", {
+    access_token,
+    refresh_token,
+    expires_in,
+  });
+
   return NextResponse.redirect("http://localhost:3000/");
 }
