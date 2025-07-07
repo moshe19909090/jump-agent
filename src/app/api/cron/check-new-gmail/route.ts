@@ -4,7 +4,7 @@ import { pool } from "@/lib/db";
 import { getEmbedding } from "@/lib/embedding";
 import { getAgentExecutor } from "@/agents";
 import { getServerSession } from "next-auth";
-import { authOptions } from "../../auth/[...nextauth]/route";
+import { authOptions } from "@/lib/authOptions";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_: NextRequest) {

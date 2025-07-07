@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { pool } from "@/lib/db";
+import { authOptions } from "@/lib/authOptions";
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export async function GET(_: NextRequest) {

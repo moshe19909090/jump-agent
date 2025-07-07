@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { fetchAndStoreGmailMessages } from "@/lib/gmail";
+import { authOptions } from "@/lib/authOptions";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
