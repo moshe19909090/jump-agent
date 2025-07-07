@@ -1,6 +1,7 @@
 import { StructuredTool } from "langchain/tools";
 import { z } from "zod";
 import { google } from "googleapis";
+import { format } from "date-fns"; // <-- Make sure you install this: npm install date-fns
 
 export class ProposeMeetingTimesTool extends StructuredTool {
   name = "propose_meeting_times";
@@ -49,21 +50,26 @@ export class ProposeMeetingTimesTool extends StructuredTool {
 
     const options = freeSlots
       .slice(0, 3)
-      .map(
-        (slot) =>
-          `🕒 ${slot.start
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, 16)} - ${slot.end
-            .toISOString()
-            .replace("T", " ")
-            .slice(0, 16)}`
-      )
+      .map((slot, i) => {
+        const startFormatted = format(slot.start, "EEEE MMMM d, h:mm a");
+        const endFormatted = format(slot.end, "h:mm a");
+        return `- Option ${i + 1}: ${startFormatted} – ${endFormatted}`;
+      })
       .join("\n");
 
     const emailBody =
       body ||
-      `Hi,\n\nHere are some times that work for me:\n${options}\n\nLet me know which works best for you.\n\nThanks!`;
+      `Hi,
+
+I'd like to propose a few times for us to meet. Please let me know
+which of the following options works best for you:
+
+${options}
+
+Looking forward to our meeting!
+
+Best regards,  
+Your AI Assistant`;
 
     await sendGmail({
       accessToken,
