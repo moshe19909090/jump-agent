@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { pool } from "@/lib/db";
 
+type Params = Promise<{ threadId: string }>;
+
 export async function GET(
   req: NextRequest,
-  context: { params: { threadId: string } }
+  context: { params: Params }
 ): Promise<NextResponse> {
-  const { threadId } = context.params;
+  const { threadId } = await context.params;
 
   const result = await pool.query(
     `SELECT role, content, created_at
